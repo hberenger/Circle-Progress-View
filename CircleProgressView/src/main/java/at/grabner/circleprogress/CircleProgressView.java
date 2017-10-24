@@ -181,7 +181,9 @@ public class CircleProgressView extends View {
 
     private int mTouchEventCount;
     private OnProgressChangedListener onProgressChangedListener;
+    private OnProgressManualChangeListener onProgressManualChangeListener;
     private float previousProgressChangedValue;
+    private float previousProgressManualChangeValue = -1.f;
 
 
     private DecimalFormat decimalFormat = new DecimalFormat("0");
@@ -772,6 +774,10 @@ public class CircleProgressView extends View {
         onProgressChangedListener = listener;
     }
 
+    public void setOnProgressManualChangeListener(OnProgressManualChangeListener listener) {
+        onProgressManualChangeListener = listener;
+    }
+
     /**
      * @param _color The color of progress the bar in spinning mode.
      */
@@ -1249,6 +1255,13 @@ public class CircleProgressView extends View {
         if (onProgressChangedListener != null && value != previousProgressChangedValue) {
             onProgressChangedListener.onProgressChanged(value);
             previousProgressChangedValue = value;
+        }
+    }
+
+    private void triggerOnProgressManualChange(float value) {
+        if (onProgressManualChangeListener != null && value != previousProgressManualChangeValue) {
+            onProgressManualChangeListener.onUserDidChangeProgress(value);
+            previousProgressManualChangeValue = value;
         }
     }
 
@@ -1879,7 +1892,9 @@ public class CircleProgressView extends View {
                 mTouchEventCount = 0;
                 PointF point = new PointF(event.getX(), event.getY());
                 float angle = getRotationAngleForPointFromStart(point);
-                setValueAnimated(mMaxValue / 360f * angle, 800);
+                float newValue = mMaxValue / 360f * angle;
+                setValueAnimated(newValue, 800);
+                triggerOnProgressManualChange(newValue);
                 return true;
             }
             case MotionEvent.ACTION_MOVE: {
@@ -1887,7 +1902,9 @@ public class CircleProgressView extends View {
                 if (mTouchEventCount > 5) { //touch/move guard
                     PointF point = new PointF(event.getX(), event.getY());
                     float angle = getRotationAngleForPointFromStart(point);
-                    setValue(mMaxValue / 360f * angle);
+                    float newValue = mMaxValue / 360f * angle;
+                    setValue(newValue);
+                    triggerOnProgressManualChange(newValue);
                     return true;
                 } else {
                     return false;
@@ -1920,6 +1937,10 @@ public class CircleProgressView extends View {
 
     public interface OnProgressChangedListener {
         void onProgressChanged(float value);
+    }
+
+    public interface OnProgressManualChangeListener {
+        void onUserDidChangeProgress(float value);
     }
 
     //endregion listener for progress change
